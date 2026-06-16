@@ -2113,6 +2113,653 @@
       });
     }
 
+    // ----------------------------------------------------
+    // SHIELD & STAFF ACCESSIBILITY WORKSPACE
+    // ----------------------------------------------------
+    async function handleRegisterRider(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('staffRiderName').value.trim(),
+        phone: document.getElementById('staffRiderPhone').value.trim(),
+        passcode: document.getElementById('staffRiderPasscode').value
+      };
+
+      if (APP_STATE.dbMode === 'sandbox') {
+        const uniqueId = "DB-" + (APP_STATE.deliveryBoys.length + 101);
+        const newRider = {
+          ID: uniqueId,
+          Name: payload.name,
+          Phone: payload.phone,
+          Active: true,
+          Passcode: payload.passcode
+        };
+        APP_STATE.deliveryBoys.push(newRider);
+        localStorage.setItem('FCGO_SANDBOX_DELIVERY_BOYS', JSON.stringify(APP_STATE.deliveryBoys));
+        showToast(`Rider ${payload.name} registered (Sandbox)!`, "success");
+        renderAdminConsole();
+      } else {
+        const res = await apiFetch({ action: "addDeliveryBoy", data: payload }, true);
+        if (res) {
+          showToast(`Rider ${payload.name} successfully appended to Cloud registry!`, "success");
+          await syncBackendData();
+          renderAdminConsole();
+        }
+      }
+      e.target.reset();
+    }
+
+    async function handleRegisterAdmin(e) {
+      e.preventDefault();
+      const payload = {
+        username: document.getElementById('staffAdminUser').value.trim(),
+        password: document.getElementById('staffAdminPass').value
+      };
+
+      if (APP_STATE.dbMode === 'sandbox') {
+        const check = APP_STATE.admins.find(adm => adm.Username.toLowerCase() === payload.username.toLowerCase());
+        if (check) {
+          showToast("Username already exists in sandbox database.", "error");
+          return;
+        }
+        const newAdmin = {
+          Username: payload.username,
+          Password: payload.password,
+          Active: true
+        };
+        APP_STATE.admins.push(newAdmin);
+        localStorage.setItem('FCGO_SANDBOX_ADMINS', JSON.stringify(APP_STATE.admins));
+        showToast(`Authorized administrative account created: ${payload.username} (Sandbox)!`, "success");
+        renderAdminConsole();
+      } else {
+        const res = await apiFetch({ action: "addAdmin", data: payload }, true);
+        if (res) {
+          showToast(`Authorized administrative account created: ${payload.username}!`, "success");
+          await syncBackendData();
+          renderAdminConsole();
+        }
+      }
+      e.target.reset();
+    }
+
+    async function toggleRiderActiveState(riderId, isChecked) {
+      if (APP_STATE.dbMode === 'sandbox') {
+        const r = APP_STATE.deliveryBoys.find(db => db.ID === riderId);
+        if (r) {
+          r.Active = isChecked;
+          localStorage.setItem('FCGO_SANDBOX_DELIVERY_BOYS', JSON.stringify(APP_STATE.deliveryBoys));
+          showToast(`Updated active logistics availability!`, "success");
+          renderAdminConsole();
+        }
+      } else {
+        const res = await apiFetch({
+          action: "updateDeliveryBoyAttributes",
+          data: { id: riderId, attributes: { Active: isChecked } }
+        }, true);
+        if (res) {
+          showToast(`Updated logistics availability!`, "success");
+          await syncBackendData();
+          renderAdminConsole();
+        }
+      }
+    }
+
+    async function toggleAdminActiveState(username, isChecked) {
+      if (APP_STATE.dbMode === 'sandbox') {
+        if (username === "admin" && !isChecked) {
+          showToast("Protected root admin account cannot be deactivated.", "error");
+          renderAdminConsole();
+          return;
+        }
+        const a = APP_STATE.admins.find(adm => adm.Username === username);
+        if (a) {
+          a.Active = isChecked;
+          localStorage.setItem('FCGO_SANDBOX_ADMINS', JSON.stringify(APP_STATE.admins));
+          showToast(`Security permissions updated!`, "success");
+          renderAdminConsole();
+        }
+      } else {
+        const res = await apiFetch({
+          action: "updateAdminAttributes",
+          data: { username: username, attributes: { Active: isChecked } }
+        }, true);
+        if (res) {
+          showToast(`Security permissions updated!`, "success");
+          await syncBackendData();
+          renderAdminConsole();
+        }
+      }
+    }
+
+    async function inlineChangeRiderPasscode(riderId, currentPasscode) {
+      const newPass = prompt("Set new secure passcode for this Rider Profile:", currentPasscode);
+      if (newPass === null) return;
+      if (newPass.trim() === '') {
+        showToast("Invalid empty passcode choice.", "error");
+        return;
+      }
+
+      if (APP_STATE.dbMode === 'sandbox') {
+        const r = APP_STATE.deliveryBoys.find(db => db.ID === riderId);
+        if (r) {
+          r.Passcode = newPass.trim();
+          localStorage.setItem('FCGO_SANDBOX_DELIVERY_BOYS', JSON.stringify(APP_STATE.deliveryBoys));
+          showToast(`Rider passcode securely written (Sandbox)!`, "success");
+          renderAdminConsole();
+        }
+      } else {
+        const res = await apiFetch({
+          action: "updateDeliveryBoyAttributes",
+          data: { id: riderId, attributes: { Passcode: newPass.trim() } }
+        }, true);
+        if (res) {
+          showToast(`Rider passcode securely written!`, "success");
+          await syncBackendData();
+          renderAdminConsole();
+        }
+      }
+    }
+
+    async function inlineChangeAdminPassword(username, currentPassword) {
+      const newPass = prompt(`Set new secure administrative password for admin profile [${username}]:`, currentPassword);
+      if (newPass === null) return;
+      if (newPass.trim().length < 5) {
+        showToast("Password must contain at least 5 characters.", "error");
+        return;
+      }
+
+      if (APP_STATE.dbMode === 'sandbox') {
+        const a = APP_STATE.admins.find(adm => adm.Username === username);
+        if (a) {
+          a.Password = newPass.trim();
+          localStorage.setItem('FCGO_SANDBOX_ADMINS', JSON.stringify(APP_STATE.admins));
+          showToast("Administrator password modified (Sandbox)!", "success");
+          renderAdminConsole();
+        }
+      } else {
+        const res = await apiFetch({
+          action: "updateAdminAttributes",
+          data: { username: username, attributes: { Password: newPass.trim() } }
+        }, true);
+        if (res) {
+          showToast("Administrator password modified!", "success");
+          await syncBackendData();
+          renderAdminConsole();
+        }
+      }
+    }
+
+    function renderStaffAndSecurityRegistry() {
+      // 1. Render Delivery Riders Panel
+      const rBody = document.getElementById('staffRidersTableBody');
+      if (rBody) {
+        rBody.innerHTML = '';
+        APP_STATE.deliveryBoys.forEach(db => {
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-stone-50/50 transition-colors";
+          const activeChecked = db.Active ? "checked" : "";
+          tr.innerHTML = `
+            <td class="px-4 py-3.5 font-bold font-mono text-stone-600">${db.ID}</td>
+            <td class="px-4 py-3.5 font-bold text-stone-900">${db.Name}</td>
+            <td class="px-4 py-3.5 font-bold text-stone-500">${db.Phone}</td>
+            <td class="px-4 py-3.5">
+              <button onclick="inlineChangeRiderPasscode('${db.ID}', '${db.Passcode}')" class="bg-stone-100 hover:bg-stone-200 border border-stone-200 px-3 py-1.5 rounded-lg font-bold font-mono flex items-center gap-1.5 cursor-pointer">
+                <span class="text-stone-800">${db.Passcode}</span> <i class="fa-solid fa-pen-to-square text-stone-400"></i>
+              </button>
+            </td>
+            <td class="px-4 py-3.5">
+              <label class="relative inline-flex items-center cursor-pointer select-none">
+                <input type="checkbox" onchange="toggleRiderActiveState('${db.ID}', this.checked)" ${activeChecked} class="sr-only peer">
+                <div class="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brandGreen"></div>
+                <span class="ml-2 font-black text-[10px] uppercase text-stone-500">${db.Active ? 'Active' : 'Disabled'}</span>
+              </label>
+            </td>
+          `;
+          rBody.appendChild(tr);
+        });
+      }
+
+      // 2. Render Administrator panel table rows
+      const aBody = document.getElementById('staffAdminsTableBody');
+      if (aBody) {
+        aBody.innerHTML = '';
+        APP_STATE.admins.forEach(adm => {
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-stone-50/50 transition-colors";
+          const activeChecked = adm.Active ? "checked" : "";
+          tr.innerHTML = `
+            <td class="px-4 py-3.5 font-bold text-stone-900 flex items-center gap-1.5">
+              <i class="fa-solid fa-user-shield text-indigo-500/80"></i> ${adm.Username}
+            </td>
+            <td class="px-4 py-3.5">
+              <button onclick="inlineChangeAdminPassword('${adm.Username}', '${adm.Password}')" class="bg-stone-100 hover:bg-stone-200 border border-stone-200 px-3 py-1.5 rounded-lg font-bold font-mono flex items-center gap-1.5 cursor-pointer">
+                <span class="text-stone-800">${adm.Password}</span> <i class="fa-solid fa-pen-to-square text-stone-400"></i>
+              </button>
+            </td>
+            <td class="px-4 py-3.5">
+              <label class="relative inline-flex items-center cursor-pointer select-none">
+                <input type="checkbox" onchange="toggleAdminActiveState('${adm.Username}', this.checked)" ${activeChecked} class="sr-only peer">
+                <div class="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brandGreen"></div>
+                <span class="ml-2 font-black text-[10px] uppercase text-stone-500">${adm.Active ? 'Granted' : 'Revoked'}</span>
+              </label>
+            </td>
+          `;
+          aBody.appendChild(tr);
+        });
+      }
+    }
+
+    // ----------------------------------------------------
+    // GENERAL STORE CONTROLLER ROUTINES
+    // ----------------------------------------------------
+    function setCustomerCategory(cat) {
+      APP_STATE.filters.category = cat;
+      document.querySelectorAll('.category-pill').forEach(btn => {
+        if (btn.innerText.includes(cat) || (cat === 'All' && btn.innerText.includes('All Items'))) {
+          btn.className = "category-pill active bg-brandGreen text-white font-bold px-5 py-3 rounded-2xl text-xs transition-all shadow-sm shrink-0 flex items-center gap-2 cursor-pointer border border-transparent";
+        } else {
+          btn.className = "category-pill bg-white hover:bg-stone-100 text-stone-800 border border-stone-200/80 font-bold px-5 py-3 rounded-2xl text-xs transition-all shadow-sm shrink-0 flex items-center gap-2 cursor-pointer";
+        }
+      });
+      renderCustomerCatalog();
+    }
+
+    // Synchronized search handler
+    // Synchronized search handler
+    function setCustomerSearch(val) {
+      APP_STATE.filters.search = val.toLowerCase().trim();
+      const headerSearchInput = document.getElementById('headerSearchInput');
+      const mobileSearchInput = document.getElementById('mobileSearchInput');
+      if (headerSearchInput) headerSearchInput.value = val;
+      if (mobileSearchInput) mobileSearchInput.value = val;
+      renderCustomerCatalog();
+    }
+
+    function renderCustomerCatalog() {
+      const grid = document.getElementById('productCatalogGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      
+      const filtered = APP_STATE.products.filter(p => {
+        const matchesCategory = APP_STATE.filters.category === 'All' || p.Category === APP_STATE.filters.category;
+        const matchesSearch = p.Name.toLowerCase().includes(APP_STATE.filters.search);
+        return matchesCategory && matchesSearch && p.InStock;
+      });
+
+      const filteredItemsCount = document.getElementById('filteredItemsCount');
+      if (filteredItemsCount) filteredItemsCount.innerText = `${filtered.length} items`;
+
+      // Custom Zero-Data Sync Welcome Card (Guides user how to initialize if empty)
+      if (filtered.length === 0) {
+        if (APP_STATE.products.length === 0) {
+          grid.className = "col-span-full py-8 max-w-lg mx-auto";
+          grid.innerHTML = `
+            <div class="bg-amber-50 border border-amber-200/70 p-6 rounded-3xl text-center space-y-4 shadow-sm animate-fade-in">
+              <div class="h-14 w-14 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-800 mx-auto text-xl">
+                <i class="fa-solid fa-wifi-slash"></i>
+              </div>
+              <div class="space-y-1">
+                <h4 class="font-extrabold text-stone-900 text-base">Connected! Seeding Required</h4>
+                <p class="text-xs text-stone-600 font-semibold leading-relaxed">
+                  Your website successfully connected to your Google Sheet database! However, your sheet currently has no products listed. 
+                </p>
+              </div>
+              <div class="p-3 bg-white rounded-2xl border text-stone-500 text-[11px] font-semibold text-left space-y-1.5">
+                <p class="text-stone-900 font-bold uppercase tracking-wider text-[9px]"><i class="fa-solid fa-circle-info text-amber-500 mr-1"></i> Quick Start Instruction:</p>
+                <p>1. Scroll down to the bottom footer partner block.</p>
+                <p>2. Click <strong>Administration Portal</strong>.</p>
+                <p>3. Enter default credentials: <strong>admin</strong> and <strong>admin123</strong>.</p>
+                <p>4. Click the yellow <strong>Reset with Demo Seed</strong> button to instantly populate your storefront and Google Sheet with delicious organic vegetables.</p>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        // Restore default layout grid classes
+        grid.className = "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4";
+        grid.innerHTML = `
+          <div class="col-span-full py-16 flex flex-col items-center justify-center text-stone-400 text-center">
+            <div class="h-16 w-16 bg-stone-100 rounded-full flex items-center justify-center text-2xl mb-4 text-stone-300">
+              <i class="fa-solid fa-ban"></i>
+            </div>
+            <p class="font-bold text-stone-700">No matching items in store stock</p>
+            <p class="text-xs max-w-xs mt-1">Try resetting filters or checking back later for fresh farm stock arrivals.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Restore default layout grid classes
+      grid.className = "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4";
+
+      filtered.forEach(p => {
+        const hasDiscount = parseFloat(p.DiscountPercent) > 0;
+        let badgeHTML = '';
+        if (hasDiscount) {
+          badgeHTML = `<span class="bg-[#d11243] text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm uppercase tracking-wide">${p.DiscountPercent}% OFF</span>`;
+        } else if (p.IsFeatured) {
+          badgeHTML = `<span class="bg-amber-400 text-stone-900 text-[9px] font-black px-2 py-0.5 rounded shadow-sm uppercase tracking-wide"><i class="fa-solid fa-star text-[8px] mr-0.5"></i> Featured</span>`;
+        } else if (p.IsDailySpecial) {
+          badgeHTML = `<span class="bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm uppercase tracking-wide">Special</span>`;
+        }
+
+        let priceSectionHTML = '';
+        if (hasDiscount) {
+          priceSectionHTML = `
+            <div class="flex flex-col">
+              <span class="text-sm font-extrabold text-stone-900">$${p.displayPrice}</span>
+              <span class="text-[10px] line-through text-stone-400 font-bold">$${parseFloat(p.BasePrice).toFixed(2)}</span>
+            </div>
+          `;
+        } else {
+          priceSectionHTML = `
+            <span class="text-sm font-extrabold text-stone-900">$${parseFloat(p.BasePrice).toFixed(2)}</span>
+          `;
+        }
+
+        const cartItem = APP_STATE.cart.find(item => item.product.ProductID === p.ProductID);
+        let buttonActionHTML = '';
+        if (cartItem) {
+          buttonActionHTML = `
+            <div class="flex items-center justify-between bg-brandGreen text-white rounded-xl h-9 px-1.5 shadow-sm">
+              <button onclick="adjustCartQuantity('${p.ProductID}', -1)" class="h-6 w-6 rounded bg-brandDarkGreen hover:bg-stone-900 hover:text-white text-white flex items-center justify-center font-black text-xs transition-all focus:outline-none cursor-pointer"><i class="fa-solid fa-minus text-[10px]"></i></button>
+              <span class="text-xs font-black select-none mx-2">${cartItem.quantity}</span>
+              <button onclick="adjustCartQuantity('${p.ProductID}', 1)" class="h-6 w-6 rounded bg-brandDarkGreen hover:bg-stone-900 hover:text-white text-white flex items-center justify-center font-black text-xs transition-all focus:outline-none cursor-pointer"><i class="fa-solid fa-plus text-[10px]"></i></button>
+            </div>
+          `;
+        } else {
+          buttonActionHTML = `
+            <button onclick="addToCart('${p.ProductID}')" class="w-full h-9 bg-white hover:bg-brandGreen border border-brandGreen/60 text-brandGreen hover:text-white font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-1 focus:outline-none cursor-pointer shadow-sm">
+              ADD
+            </button>
+          `;
+        }
+
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl overflow-hidden border border-stone-200/60 hover:border-stone-300 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col group relative";
+        card.innerHTML = `
+          <div class="h-36 w-full bg-stone-50 overflow-hidden relative border-b border-stone-100">
+            <img src="${p.ImageURI}" alt="${p.Name}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542223116-658530124f40?auto=format&fit=crop&q=80&w=300'" class="h-full w-full object-cover group-hover:scale-105 transition-all duration-500">
+            <div class="absolute top-2 left-2 z-10 flex flex-col gap-1">
+              ${badgeHTML}
+            </div>
+            <div class="absolute bottom-2 left-2 bg-stone-900/90 backdrop-blur-sm text-stone-100 text-[8px] font-black px-1.5 py-0.5 rounded flex items-center gap-1 shadow">
+              <i class="fa-solid fa-bolt text-brandYellow text-[7px]"></i> 8 MINS
+            </div>
+          </div>
+          <div class="p-3 flex-grow flex flex-col justify-between gap-2.5">
+            <div>
+              <p class="text-[9px] text-stone-400 font-bold uppercase tracking-wider">${p.SKUMetric}</p>
+              <h3 class="font-extrabold text-xs text-stone-855 leading-snug group-hover:text-brandGreen transition-colors mt-0.5 truncate" title="${p.Name}">${p.Name}</h3>
+            </div>
+            <div class="flex items-center justify-between gap-1 mt-auto pt-1 border-t border-stone-50">
+              ${priceSectionHTML}
+              <div class="w-16 shrink-0">
+                ${buttonActionHTML}
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function adjustCartQuantity(productId, modifier) {
+      const index = APP_STATE.cart.findIndex(item => item.product.ProductID === productId);
+      if (index === -1) return;
+
+      APP_STATE.cart[index].quantity += modifier;
+      if (APP_STATE.cart[index].quantity <= 0) {
+        const removedName = APP_STATE.cart[index].product.Name;
+        APP_STATE.cart.splice(index, 1);
+        showToast(`Removed ${removedName} from basket.`, "success");
+      }
+      saveLocalStorageCart();
+      renderCustomerCatalog();
+      updateCheckoutCartVisuals();
+    }
+
+    function toggleCartDrawer(bool) {
+      const drawer = document.getElementById('cartDrawer');
+      if (drawer) {
+        if (bool) {
+          drawer.classList.remove('hidden');
+        } else {
+          drawer.classList.add('hidden');
+        }
+      }
+    }
+
+    function updateCheckoutCartVisuals() {
+      const count = APP_STATE.cart.reduce((sum, item) => sum + item.quantity, 0);
+      let subtotal = 0;
+      
+      APP_STATE.cart.forEach(item => {
+        subtotal += (item.product.displayPrice * item.quantity);
+      });
+
+      const headerCartCount = document.getElementById('headerCartCount');
+      const headerCartPrice = document.getElementById('headerCartPrice');
+      if (headerCartCount) headerCartCount.innerText = count;
+      if (headerCartPrice) headerCartPrice.innerText = `$${subtotal.toFixed(2)}`;
+
+      const stickyBar = document.getElementById('stickyBlinkitBar');
+      if (stickyBar) {
+        if (count > 0 && APP_STATE.currentRole === 'customer') {
+          stickyBar.classList.remove('hidden');
+          const stickyCountText = document.getElementById('stickyCountText');
+          const stickyPriceText = document.getElementById('stickyPriceText');
+          if (stickyCountText) stickyCountText.innerText = `${count} ${count === 1 ? 'Item' : 'Items'} placed`;
+          if (stickyPriceText) stickyPriceText.innerText = `Basket subtotal: $${subtotal.toFixed(2)}`;
+        } else {
+          stickyBar.classList.add('hidden');
+        }
+      }
+
+      const listContainer = document.getElementById('cartItemsList');
+      if (listContainer) {
+        listContainer.innerHTML = '';
+
+        if (APP_STATE.cart.length === 0) {
+          listContainer.innerHTML = `
+            <div class="py-12 flex flex-col items-center justify-center text-center text-stone-400">
+              <div class="h-14 w-14 bg-stone-50 border border-stone-200 rounded-full flex items-center justify-center text-xl mb-3">
+                <i class="fa-solid fa-basket-shopping text-stone-300"></i>
+              </div>
+              <p class="font-extrabold text-sm text-stone-600">Your basket is empty</p>
+              <p class="text-[10px] max-w-xs mt-1 font-semibold">Explore our fresh catalog and add crisp farm products to construct your order.</p>
+            </div>
+          `;
+          const subtotalEl = document.getElementById('cartSubtotal');
+          const totalEl = document.getElementById('cartTotal');
+          if (subtotalEl) subtotalEl.innerText = "$0.00";
+          if (totalEl) totalEl.innerText = "$0.00";
+          return;
+        }
+
+        APP_STATE.cart.forEach(item => {
+          const itemCost = item.product.displayPrice * item.quantity;
+          const el = document.createElement('div');
+          el.className = "flex items-center gap-3 py-3 first:pt-0 border-b border-stone-100 last:border-b-0";
+          el.innerHTML = `
+            <div class="h-14 w-14 bg-stone-100 rounded-lg overflow-hidden shrink-0">
+              <img src="${item.product.ImageURI}" alt="${item.product.Name}" class="h-full w-full object-cover">
+            </div>
+            <div class="flex-grow min-w-0">
+              <h4 class="font-extrabold text-xs text-stone-855 truncate">${item.product.Name}</h4>
+              <p class="text-[10px] text-stone-400 font-bold">${item.product.SKUMetric} &bull; $${item.product.displayPrice} each</p>
+              <div class="flex items-center justify-between mt-1">
+                <div class="flex items-center gap-2">
+                  <button onclick="adjustCartQuantity('${item.product.ProductID}', -1)" class="h-5 w-5 bg-stone-100 hover:bg-stone-200 rounded text-xs flex items-center justify-center font-black text-stone-600 border border-stone-200/50 cursor-pointer">-</button>
+                  <span class="text-xs font-black text-stone-800">${item.quantity}</span>
+                  <button onclick="adjustCartQuantity('${item.product.ProductID}', 1)" class="h-5 w-5 bg-stone-100 hover:bg-stone-200 rounded text-xs flex items-center justify-center font-black text-stone-600 border border-stone-200/50 cursor-pointer">+</button>
+                </div>
+                <span class="text-xs font-black text-brandGreen">$${itemCost.toFixed(2)}</span>
+              </div>
+            </div>
+          `;
+          listContainer.appendChild(el);
+        });
+
+        const subtotalEl = document.getElementById('cartSubtotal');
+        const totalEl = document.getElementById('cartTotal');
+        if (subtotalEl) subtotalEl.innerText = `$${subtotal.toFixed(2)}`;
+        if (totalEl) totalEl.innerText = `$${subtotal.toFixed(2)}`;
+      }
+    }
+
+    // ----------------------------------------------------
+    // ADMINISTRATIVE STATE MANAGEMENT
+    // ----------------------------------------------------
+    function renderAdminConsole() {
+      const totalRev = APP_STATE.orders
+        .filter(o => o.Status === "Delivered")
+        .reduce((sum, o) => sum + parseFloat(o.Total), 0);
+      
+      const totalDelivered = APP_STATE.orders.filter(o => o.Status === "Delivered").length;
+      const openPipelines = APP_STATE.orders.filter(o => o.Status !== "Delivered").length;
+      const activeSKUs = APP_STATE.products.length;
+
+      const metricRevenue = document.getElementById('metricRevenue');
+      const metricDelivered = document.getElementById('metricDelivered');
+      const metricOpen = document.getElementById('metricOpen');
+      const metricSkus = document.getElementById('metricSkus');
+
+      if (metricRevenue) metricRevenue.innerText = `$${totalRev.toFixed(2)}`;
+      if (metricDelivered) metricDelivered.innerText = totalDelivered;
+      if (metricOpen) metricOpen.innerText = openPipelines;
+      if (metricSkus) metricSkus.innerText = activeSKUs;
+
+      if (APP_STATE.adminTab === 'catalog') {
+        renderAdminCatalogMatrix();
+      } else if (APP_STATE.adminTab === 'scaler') {
+        renderAdminScalerPanel();
+      } else if (APP_STATE.adminTab === 'orders') {
+        renderAdminOrders();
+      } else if (APP_STATE.adminTab === 'staff') {
+        renderStaffAndSecurityRegistry();
+      }
+    }
+
+    function renderAdminCatalogMatrix() {
+      const tbody = document.getElementById('adminProductsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (APP_STATE.products.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-stone-400 font-bold">No products found in database.</td></tr>`;
+        return;
+      }
+
+      APP_STATE.products.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-stone-50/50 transition-colors";
+        const inStockChecked = p.InStock ? "checked" : "";
+
+        tr.innerHTML = `
+          <td class="px-4 py-3.5 font-extrabold text-stone-600">
+            <div class="flex items-center gap-2">
+              <img src="${p.ImageURI}" class="h-8 w-8 object-cover rounded-lg border border-stone-200 shrink-0">
+              <span class="font-mono text-[10px]">${p.ProductID}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3.5 font-black text-stone-900">${p.Name}</td>
+          <td class="px-4 py-3.5 text-stone-500 font-extrabold">${p.Category}</td>
+          <td class="px-4 py-3.5 font-bold text-stone-600">${p.SKUMetric}</td>
+          <td class="px-4 py-3.5 font-black text-stone-900">$${parseFloat(p.BasePrice).toFixed(2)}</td>
+          <td class="px-4 py-3.5 font-black text-brandGreen">${p.DiscountPercent}%</td>
+          <td class="px-4 py-3.5">
+            <label class="relative inline-flex items-center cursor-pointer select-none">
+              <input type="checkbox" onchange="toggleProductInStock('${p.ProductID}', this.checked)" ${inStockChecked} class="sr-only peer">
+              <div class="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brandGreen"></div>
+              <span class="ml-2 font-black text-[10px] uppercase text-stone-500">${p.InStock ? 'In Stock' : 'Disabled'}</span>
+            </label>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAdminScalerPanel() {
+      const pSel = document.getElementById('attributeProductSelector');
+      if (!pSel) return;
+      pSel.innerHTML = '';
+      if (APP_STATE.products.length === 0) return;
+
+      APP_STATE.products.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.ProductID;
+        opt.innerText = `${p.Name} (${p.SKUMetric}) - $${p.BasePrice}`;
+        pSel.appendChild(opt);
+      });
+      loadProductAttributeUI(APP_STATE.products[0].ProductID);
+    }
+
+    function renderAdminOrders() {
+      const tbody = document.getElementById('adminOrdersTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const filterStatus = document.getElementById('adminOrderFilterStatus').value;
+      const searchQuery = document.getElementById('adminOrderSearch').value.toLowerCase().trim();
+
+      const filtered = APP_STATE.orders.filter(o => {
+        const matchesStatus = filterStatus === 'All' || o.Status === filterStatus;
+        const matchesQuery = o.OrderID.toLowerCase().includes(searchQuery) ||
+                             o.CustomerName.toLowerCase().includes(searchQuery) ||
+                             o.Phone.includes(searchQuery) ||
+                             o.Address.toLowerCase().includes(searchQuery);
+        return matchesStatus && matchesQuery;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-stone-400 font-bold">No matching orders found.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(o => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-stone-50/50 transition-colors border-b";
+        const itemsSummary = o.ItemsJSON.map(item => `${item.name} (${item.quantity})`).join(', ');
+
+        let selectHTML = `<select onchange="assignDeliveryFromAdmin('${o.OrderID}', this.value)" class="bg-white border border-stone-200 rounded px-1.5 py-1 text-[10px] focus:outline-none cursor-pointer font-bold">`;
+        selectHTML += `<option value="">Unassigned</option>`;
+        APP_STATE.deliveryBoys.forEach(db => {
+          if (db.Active) {
+            const selected = db.Name === o.AssignedDeliveryBoy ? "selected" : "";
+            selectHTML += `<option value="${db.Name}" ${selected}>🛵 ${db.Name}</option>`;
+          }
+        });
+        selectHTML += `</select>`;
+
+        let statusStyle = "";
+        if (o.Status === "Pending") statusStyle = "bg-amber-100 text-amber-900 border border-amber-200";
+        else if (o.Status === "Picked Up") statusStyle = "bg-blue-100 text-blue-900 border border-blue-200";
+        else if (o.Status === "Delivered") statusStyle = "bg-emerald-100 text-emerald-900 border border-emerald-200";
+
+        tr.innerHTML = `
+          <td class="px-4 py-3.5">
+            <span class="font-bold text-stone-850">${o.OrderID}</span>
+            <p class="text-[9px] text-stone-400 font-mono font-bold">${new Date(o.OrderedAt).toLocaleDateString()}</p>
+          </td>
+          <td class="px-4 py-3.5 font-bold text-stone-855 font-bold">
+            ${o.CustomerName}
+            <p class="text-[9px] text-stone-400 font-bold">${o.Phone}</p>
+          </td>
+          <td class="px-4 py-3.5 max-w-[150px] truncate" title="${o.Address}">${o.Address}</td>
+          <td class="px-4 py-3.5 max-w-[150px] truncate" title="${itemsSummary}">${itemsSummary}</td>
+          <td class="px-4 py-3.5 font-black text-stone-900">$${parseFloat(o.Total).toFixed(2)}</td>
+          <td class="px-4 py-3.5">${selectHTML}</td>
+          <td class="px-4 py-3.5">
+            <span class="px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${statusStyle}">
+              ${o.Status}
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
     // Handle structural checkout submission
     async function handleCheckoutSubmit(e) {
       e.preventDefault();
