@@ -79,8 +79,8 @@
 
   <!-- ==================== CONFIGURATION BLOCK ==================== -->
   <script>
-    // Deployed Google Apps Script Web App Endpoint URL linked directly to your Sheets DB
-    const API_URL = "https://script.google.com/macros/s/AKfycbxrfaf-3I0xgiDP5XHjXQeuT0oLOKDVrNBqltfwRuBM6ggfySZKQfBix2ojTzsC81VF/exec";
+    // Synchronized Google Apps Script Web App Endpoint URL linked directly to your Sheets DB
+    const API_URL = "https://script.google.com/macros/s/AKfycbxzg6xLc7dqJSenu6mYHEZz5lTiTRfpL6fIAAoLqNCzMd75pddzd3eWzSzneM-MGcHE/exec";
   </script>
 
   <!-- ==================== APP GLOBAL LOADER SPINNER ==================== -->
@@ -299,7 +299,7 @@
         
         <div class="flex flex-col sm:flex-row gap-3">
           <!-- Interactive Spreadsheet link for absolute control directly inside the Admin portal -->
-          <a href="https://docs.google.com/spreadsheets/d/1OSx_iuFk_ZDy4Sl-sfBJsVqaYvI7tQV7QHOgZlxJIpM/edit" target="_blank" class="bg-brandGreen hover:bg-brandDarkGreen text-white font-bold text-xs px-5 py-3.5 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2 shrink-0">
+          <a href="https://docs.google.com/spreadsheets/d/1OSx_iuFk_ZDy4Sl-sfBJsVqaYvI7tQV7QHOgZlxJIpM/edit?gid=255212993#gid=255212993" target="_blank" class="bg-brandGreen hover:bg-brandDarkGreen text-white font-bold text-xs px-5 py-3.5 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2 shrink-0">
             <i class="fa-solid fa-file-excel"></i> Open Google Sheets DB
           </a>
           <button onclick="handlePartnerLogout()" class="bg-stone-850 hover:bg-red-900 border border-stone-700 text-stone-300 hover:text-white font-bold text-xs px-5 py-3.5 rounded-2xl transition-all cursor-pointer shadow flex items-center justify-center gap-2 shrink-0">
@@ -494,7 +494,7 @@
                     <label class="flex items-center gap-2 bg-white border border-stone-200 p-3 rounded-xl cursor-pointer">
                       <input type="checkbox" id="attrIsDailySpecial" class="h-4 w-4 rounded text-brandGreen focus:ring-brandGreen cursor-pointer">
                       <div>
-                        <p class="text-xs font-bold text-stone-850">Daily Special</p>
+                        <p class="text-xs font-bold text-stone-855 font-bold">Daily Special</p>
                         <p class="text-[9px] text-stone-400 font-semibold">Vibrant bold card badge</p>
                       </div>
                     </label>
@@ -1049,10 +1049,14 @@
       loadLocalStorageCart();
       
       const configuredUrl = localStorage.getItem('FCGO_CONFIGURED_API_URL');
-      if (!configuredUrl) {
-        APP_STATE.dbMode = 'sandbox';
-      } else {
+      if (configuredUrl) {
+        ACTIVE_API_URL = configuredUrl;
         APP_STATE.dbMode = 'cloud';
+      } else if (API_URL && !API_URL.includes("YOUR_DEPLOYMENT_URL_HERE") && API_URL.trim() !== "") {
+        ACTIVE_API_URL = API_URL;
+        APP_STATE.dbMode = 'cloud';
+      } else {
+        APP_STATE.dbMode = 'sandbox';
       }
 
       // Perform database synchronization boot-up
@@ -1804,7 +1808,7 @@
           <div class="p-3 flex-grow flex flex-col justify-between gap-2.5">
             <div>
               <p class="text-[9px] text-stone-400 font-bold uppercase tracking-wider">${p.SKUMetric}</p>
-              <h3 class="font-extrabold text-xs text-stone-850 leading-snug group-hover:text-brandGreen transition-colors mt-0.5 truncate" title="${p.Name}">${p.Name}</h3>
+              <h3 class="font-extrabold text-xs text-stone-855 leading-snug group-hover:text-brandGreen transition-colors mt-0.5 truncate" title="${p.Name}">${p.Name}</h3>
             </div>
             <div class="flex items-center justify-between gap-1 mt-auto pt-1 border-t border-stone-50">
               ${priceSectionHTML}
