@@ -104,9 +104,9 @@
             </div>
 
             <!-- Header Account Button -->
-            <button onclick="openCustomerAuth()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 w-10 h-10 sm:w-auto sm:px-4 sm:py-2.5 rounded-xl font-bold flex justify-center items-center gap-2 transition">
+            <button onclick="handleAccountClick()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 w-10 h-10 sm:w-auto sm:px-4 sm:py-2.5 rounded-xl font-bold flex justify-center items-center gap-2 transition">
                 <i class="fa-regular fa-user"></i>
-                <span class="hidden sm:inline">Account</span>
+                <span id="header-account-text" class="hidden sm:inline">Login</span>
             </button>
 
             <!-- Header Cart Button -->
@@ -142,13 +142,8 @@
     <!-- MAIN STOREFRONT GRID -->
     <main class="max-w-7xl mx-auto px-4 py-6 mb-24">
         <!-- Loading Shimmer -->
-        <div id="loading-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <!-- Shimmers injected via JS -->
-        </div>
-
-        <div id="product-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 hide">
-            <!-- Products injected via JS -->
-        </div>
+        <div id="loading-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+        <div id="product-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 hide"></div>
     </main>
 
     <!-- STICKY BOTTOM BASKET TRACKER -->
@@ -180,16 +175,14 @@
         </div>
     </footer>
 
-    <!-- CART & CHECKOUT MODAL -->
+    <!-- CART MODAL -->
     <div id="cart-modal" class="hide fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-end transition-opacity">
         <div class="bg-white w-full max-w-md h-full shadow-2xl flex flex-col transform transition-transform">
             <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                 <h2 class="font-bold text-lg"><i class="fa-solid fa-cart-shopping text-fcGreen mr-2"></i> Your Basket</h2>
                 <button onclick="closeModal('cart-modal')" class="text-gray-400 hover:text-gray-800 bg-gray-200 w-8 h-8 rounded-full"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div id="cart-items-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-                <!-- Cart items here -->
-            </div>
+            <div id="cart-items-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4"></div>
             <div class="p-4 border-t border-gray-100 bg-white">
                 <div class="flex justify-between mb-4 text-sm font-bold text-gray-700">
                     <span>To Pay</span>
@@ -207,12 +200,15 @@
     <div id="checkout-modal" class="hide fixed inset-0 z-[60] bg-black bg-opacity-50 flex justify-center items-center">
         <div class="bg-white rounded-2xl w-11/12 max-w-lg shadow-2xl overflow-hidden">
             <div class="bg-fcGreen text-white p-4 flex justify-between items-center">
-                <h2 class="font-bold">Delivery Details</h2>
+                <h2 class="font-bold">Confirm Order</h2>
                 <button onclick="closeModal('checkout-modal')" class="text-white opacity-70 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form id="checkout-form" class="p-6 flex flex-col gap-4" onsubmit="submitOrder(event)">
+                <div class="bg-green-50 text-green-800 p-3 rounded-lg text-sm mb-2 border border-green-200">
+                    <i class="fa-solid fa-circle-check mr-1"></i> Logged in as <strong id="checkout-display-name"></strong>
+                </div>
                 <input type="text" id="c-name" required placeholder="Full Name" class="bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-fcGreen transition">
-                <input type="tel" id="c-phone" required placeholder="Phone Number" class="bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-fcGreen transition">
+                <input type="tel" id="c-phone" required placeholder="Phone Number" class="bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-fcGreen transition" readonly>
                 <textarea id="c-address" required placeholder="Full Delivery Address" class="bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-fcGreen transition resize-none" rows="2"></textarea>
                 <select id="c-payment" class="bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:border-fcGreen transition">
                     <option value="Cash on Delivery">Cash on Delivery</option>
@@ -225,29 +221,59 @@
         </div>
     </div>
 
-    <!-- CUSTOMER LOGIN MODAL -->
+    <!-- CUSTOMER LOGIN / REGISTER MODAL -->
     <div id="customer-auth-modal" class="hide fixed inset-0 z-[65] bg-black bg-opacity-50 flex justify-center items-center">
         <div class="bg-white rounded-2xl w-11/12 max-w-sm shadow-2xl p-6 text-center">
             <div class="w-16 h-16 bg-green-100 text-fcGreen rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"><i class="fa-regular fa-user"></i></div>
-            <h2 class="font-bold text-xl mb-2">My Account</h2>
-            <p class="text-sm text-gray-500 mb-4">Enter your phone number to view your order history.</p>
-            <input type="tel" id="customer-phone-input" placeholder="Phone Number (e.g., 555-0100)" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 text-center tracking-wider outline-none focus:border-fcGreen">
-            <button onclick="loadCustomerOrders()" id="load-orders-btn" class="w-full bg-fcGreen hover:bg-green-700 text-white font-bold py-3 rounded-xl transition">View Orders</button>
+            
+            <!-- Step 1: Login -->
+            <div id="auth-login-step">
+                <h2 class="font-bold text-xl mb-2">Welcome Back!</h2>
+                <p class="text-sm text-gray-500 mb-4">Enter your 10-digit mobile number and password to sign in.</p>
+                <input type="tel" id="login-phone" maxlength="10" placeholder="10-Digit Mobile No." class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 text-center tracking-wider outline-none focus:border-fcGreen">
+                <input type="password" id="login-pass" placeholder="Password" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 text-center tracking-wider outline-none focus:border-fcGreen">
+                <button onclick="processCustomerLogin()" id="auth-login-btn" class="w-full bg-fcGreen hover:bg-green-700 text-white font-bold py-3 rounded-xl transition">Login</button>
+                <p class="text-sm mt-4 text-gray-500">New here? <button onclick="toggleAuthMode('register')" class="text-fcGreen font-bold hover:underline">Create an account</button></p>
+            </div>
+
+            <!-- Step 2: Registration -->
+            <div id="auth-register-step" class="hide">
+                <h2 class="font-bold text-xl mb-2">Create Account</h2>
+                <p class="text-sm text-gray-500 mb-4">Looks like you're new! Let's get your details.</p>
+                <input type="text" id="reg-name" placeholder="Full Name" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 outline-none focus:border-fcGreen">
+                <input type="tel" id="reg-phone" maxlength="10" placeholder="10-Digit Mobile No." class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 outline-none focus:border-fcGreen">
+                <input type="password" id="reg-pass" placeholder="Create Password" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 outline-none focus:border-fcGreen">
+                <textarea id="reg-address" placeholder="Delivery Address" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 outline-none focus:border-fcGreen resize-none" rows="2"></textarea>
+                <button onclick="registerNewCustomer()" id="auth-reg-btn" class="w-full bg-fcYellow hover:bg-yellow-400 text-gray-900 font-extrabold py-3 rounded-xl transition shadow-sm">Sign Up</button>
+                <p class="text-sm mt-4 text-gray-500">Already have an account? <button onclick="toggleAuthMode('login')" class="text-fcGreen font-bold hover:underline">Login</button></p>
+            </div>
+
             <button onclick="closeModal('customer-auth-modal')" class="mt-4 text-gray-400 text-sm hover:text-gray-700">Cancel</button>
         </div>
     </div>
 
-    <!-- CUSTOMER ACCOUNT MODAL -->
+    <!-- CUSTOMER ACCOUNT DASHBOARD MODAL -->
     <div id="customer-account-modal" class="hide fixed inset-0 z-[65] bg-gray-100 overflow-y-auto">
         <div class="bg-white text-gray-800 p-4 sticky top-0 z-10 flex justify-between items-center shadow-sm border-b">
-            <h2 class="font-bold text-lg"><i class="fa-regular fa-user text-fcGreen mr-2"></i> Order History</h2>
+            <h2 class="font-bold text-lg"><i class="fa-regular fa-user text-fcGreen mr-2"></i> My Profile</h2>
             <button onclick="closeModal('customer-account-modal')" class="hover:text-gray-500 bg-gray-100 px-3 py-1 rounded-lg text-sm"><i class="fa-solid fa-xmark mr-1"></i> Close</button>
         </div>
         <div class="max-w-3xl mx-auto p-4 flex flex-col gap-4">
+            
+            <!-- Profile Card -->
+            <div class="bg-white rounded-xl shadow-sm p-4 flex justify-between items-center">
+                <div>
+                    <h3 id="profile-name" class="font-bold text-xl text-gray-800">Name</h3>
+                    <p id="profile-phone" class="text-gray-500 text-sm mt-1"></p>
+                    <p id="profile-address" class="text-gray-500 text-sm"></p>
+                </div>
+                <button onclick="logoutCustomer()" class="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-100 transition">Log Out</button>
+            </div>
+
+            <!-- Orders -->
             <div class="bg-white rounded-xl shadow-sm p-4">
-                <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <div class="border-b pb-2 mb-4">
                     <h3 class="font-bold text-gray-700">Your Orders</h3>
-                    <span id="account-phone-display" class="bg-green-50 text-fcGreen px-2 py-1 rounded text-xs font-bold"></span>
                 </div>
                 <div id="customer-orders-list" class="flex flex-col gap-3">
                     <!-- Orders injected here -->
@@ -291,9 +317,7 @@
         <div class="max-w-3xl mx-auto p-4 flex flex-col gap-4">
             <div class="bg-white rounded-xl shadow-sm p-4">
                 <h3 class="font-bold text-gray-700 mb-4 border-b pb-2">Active & Pending Runs</h3>
-                <div id="rider-orders-list" class="flex flex-col gap-3">
-                    <!-- Orders injected here -->
-                </div>
+                <div id="rider-orders-list" class="flex flex-col gap-3"></div>
             </div>
         </div>
     </div>
@@ -306,7 +330,6 @@
         </div>
         
         <div class="max-w-6xl mx-auto p-4">
-            <!-- Admin Tabs -->
             <div class="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
                 <button onclick="switchAdminTab('overview')" class="admin-tab-btn active bg-white text-gray-800 px-4 py-2 rounded-lg font-bold shadow-sm border-b-4 border-fcDark">Overview</button>
                 <button onclick="switchAdminTab('products')" class="admin-tab-btn bg-white text-gray-500 px-4 py-2 rounded-lg font-bold shadow-sm border-b-4 border-transparent hover:text-gray-800">Catalog Matrix</button>
@@ -368,7 +391,8 @@
                                 <th class="p-3 border-b">Customer</th>
                                 <th class="p-3 border-b">Total</th>
                                 <th class="p-3 border-b">Status</th>
-                                <th class="p-3 border-b">Rider</th>
+                                <th class="p-3 border-b">Assign Rider</th>
+                                <th class="p-3 border-b">Action</th>
                             </tr>
                         </thead>
                         <tbody id="admin-orders-table" class="text-sm text-gray-700"></tbody>
@@ -425,7 +449,7 @@
         // ==========================================
         
         // ** IMPORTANT: Replace with your actual deployed Apps Script Web App URL **
-        const API_URL = "https://script.google.com/macros/s/AKfycbx0CiYzDe_4cV0KXo-qpnzinyHi8U2G7vg8NEnUrrXy-6TY79_sQgtEyR_8dOybcgWi/exec"; // Placeholder URL. Update in production.
+        const API_URL = "https://script.google.com/macros/s/AKfycbyR6g_hG9kI5z8zP-4tq1lT-l6K7tE-_4iYc0oN_Q2Fz6VqG9XzY0/exec"; // Update in production.
         
         let state = {
             products: [],
@@ -433,11 +457,12 @@
             categoryFilter: 'All',
             searchQuery: '',
             
-            // Admin/Rider state
+            // Admin/Rider/Customer state
             orders: [],
             deliveryBoys: [],
             admins: [],
-            currentUser: null // { role: 'rider'|'admin', data: {} }
+            currentUser: null, // { role: 'rider'|'admin', data: {} }
+            currentCustomer: null // { Name, Phone, Address }
         };
 
         // --- MOCK DATABASE FALLBACK (For testing in Canvas) ---
@@ -450,7 +475,7 @@
                 { ProductID: 'P5', Name: 'Farm Eggs', Category: 'Groceries', ImageURI: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400&q=80', BasePrice: 5.00, SKUMetric: '12 Pack', InStock: false, IsFeatured: true, IsDailySpecial: false, DiscountPercent: 0, displayPrice: 5.00 }
             ],
             orders: [],
-            deliveryBoys: [{ ID: 'DB1', Name: 'John Fast', Phone: '555-0100', Active: true, Passcode: 'rider123' }],
+            deliveryBoys: [{ ID: 'DB1', Name: 'Speedy Sam', Phone: '555-0200', Active: true, Passcode: 'rider123' }],
             admins: [{ Username: 'admin', Password: 'admin123', Active: true }]
         };
 
@@ -458,6 +483,13 @@
         // INITIALIZATION
         // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
+            // Check for saved customer session
+            const savedCust = localStorage.getItem('fc_customer');
+            if(savedCust) {
+                state.currentCustomer = JSON.parse(savedCust);
+                updateHeaderAccountUI();
+            }
+
             renderShimmers();
             fetchInitialData();
         });
@@ -467,18 +499,10 @@
                 const res = await fetchAPI('getProducts', 'GET');
                 if (res.success) {
                     state.products = res.data;
-                    
-                    // Added a safety check to fix the "No Products" error you experienced
-                    if (state.products.length === 0) {
-                        showCustomConfirm("Database Connected", "Connected to Google Sheets, but it's empty! Do you want to automatically add demo products right now?", () => {
-                            triggerDBReset();
-                        });
-                    }
-
                     renderStorefront();
                 } else {
                     showCustomAlert("Error Loading Store", "Failed to fetch inventory.");
-                    renderStorefront(); // Render empty
+                    renderStorefront();
                 }
             } catch (err) {
                 console.error(err);
@@ -494,8 +518,6 @@
             if (method === 'GET') {
                 url += `?action=${action}`;
             } else {
-                // To prevent CORS preflight issues on standard POST with Apps Script,
-                // text/plain is used, but payload is JSON stringified.
                 options.body = JSON.stringify({ action: action, data: payload });
                 options.headers = { "Content-Type": "text/plain;charset=utf-8" };
             }
@@ -505,7 +527,7 @@
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 return await response.json();
             } catch (error) {
-                console.warn(`[Local Fallback] Network request failed for '${action}'. Falling back to local mock data.`, error);
+                console.warn(`[Local Fallback] Network request failed for '${action}'.`, error);
                 
                 // --- IN-MEMORY DEMO FALLBACK (Runs if API fails) ---
                 if (action === 'getProducts') return { success: true, data: MOCK_DB.products };
@@ -514,38 +536,21 @@
                 if (action === 'getAdmins') return { success: true, data: MOCK_DB.admins };
                 if (action === 'createOrder') {
                     const newOrder = {
-                        OrderID: 'ORD' + Date.now(),
-                        CustomerName: payload.customerName,
-                        Phone: payload.phone,
-                        Address: payload.address,
-                        Status: 'Pending',
-                        Total: payload.total,
-                        AssignedDeliveryBoy: '',
-                        Items: payload.items
+                        OrderID: 'ORD' + Date.now(), CustomerName: payload.customerName, Phone: payload.phone, Address: payload.address, Status: 'Pending', Total: payload.total, AssignedDeliveryBoy: '', Items: payload.items
                     };
                     MOCK_DB.orders.unshift(newOrder);
                     return { success: true, data: { id: newOrder.OrderID } };
                 }
                 if (action === 'addProduct') {
                     const newProd = {
-                        ProductID: 'P' + Date.now(),
-                        Name: payload.name,
-                        Category: payload.category,
-                        BasePrice: payload.basePrice,
-                        DiscountPercent: payload.discountPercent,
-                        SKUMetric: payload.skuMetric,
-                        ImageURI: payload.imageUri,
-                        InStock: true,
-                        IsFeatured: false,
-                        IsDailySpecial: false,
-                        displayPrice: payload.basePrice - (payload.basePrice * (payload.discountPercent / 100))
+                        ProductID: 'P' + Date.now(), Name: payload.name, Category: payload.category, BasePrice: payload.basePrice, DiscountPercent: payload.discountPercent, SKUMetric: payload.skuMetric, ImageURI: payload.imageUri, InStock: true, IsFeatured: false, IsDailySpecial: false, displayPrice: payload.basePrice - (payload.basePrice * (payload.discountPercent / 100))
                     };
                     MOCK_DB.products.push(newProd);
                     return { success: true, data: { id: newProd.ProductID } };
                 }
                 if (action === 'assignDeliveryBoy') {
                     const o = MOCK_DB.orders.find(x => x.OrderID === payload.orderId);
-                    if(o) { o.AssignedDeliveryBoy = payload.deliveryBoyName; o.Status = 'Picked Up'; }
+                    if(o) { o.AssignedDeliveryBoy = payload.deliveryBoyName; o.Status = payload.deliveryBoyName ? 'Picked Up' : 'Pending'; }
                     return { success: true };
                 }
                 if (action === 'updateOrderStatus') {
@@ -558,13 +563,18 @@
                     if(p) Object.assign(p, payload.attributes);
                     return { success: true };
                 }
-                if (action === 'initializeDatabase') {
-                    return { success: true, data: { message: "Mock Database Reset" } };
+                if (action === 'checkCustomer') {
+                    return { success: true, data: { exists: false } }; // Force register mode in mock demo
+                }
+                if (action === 'registerCustomer') {
+                    const newCust = { CustomerID: 'CUST' + Date.now(), Name: payload.name, 'Mobile Number': payload.phone, Address: payload.address, Passwod: payload.password };
+                    return { success: true, data: newCust };
                 }
                 if (action === 'getCustomerOrders') {
-                    const phone = payload.phone;
-                    const cOrders = MOCK_DB.orders.filter(o => String(o.Phone) === String(phone));
-                    return { success: true, data: cOrders };
+                    return { success: true, data: [] };
+                }
+                if (action === 'initializeDatabase') {
+                    return { success: true, data: { message: "Mock Database Reset" } };
                 }
 
                 return { success: false, error: "Offline Mock Error: Unsupported action" };
@@ -585,7 +595,6 @@
             if(el) el.classList.add('hide'); 
         }
 
-        // Custom Modals
         function showCustomAlert(title, message) {
             const titleEl = $('alert-title');
             const msgEl = $('alert-message');
@@ -636,8 +645,6 @@
         // ==========================================
         function filterCategory(cat) {
             state.categoryFilter = cat;
-            
-            // Update UI buttons
             const btns = document.querySelectorAll('.category-btn');
             btns.forEach(btn => {
                 btn.className = "category-btn flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-green-300 rounded-full text-sm font-medium whitespace-nowrap transition";
@@ -694,7 +701,6 @@
                         <button onclick="updateQty('${p.ProductID}', 1)" class="w-6 h-6 flex items-center justify-center hover:bg-green-700 rounded"><i class="fa-solid fa-plus text-xs"></i></button>
                        </div>`;
 
-                // Handle Fallback image if Error
                 const imgHTML = `<img src="${p.ImageURI}" onerror="this.src='https://via.placeholder.com/400?text=Fresh+Item'" alt="${p.Name}" class="w-full h-32 object-cover mix-blend-multiply group-hover:scale-105 transition duration-300">`;
 
                 prodGrid.innerHTML += `
@@ -748,13 +754,11 @@
                 totalPrice += state.cart[id].product.displayPrice * state.cart[id].quantity;
             }
 
-            // Header UI
             const hCount = $('header-cart-count');
             const hTotal = $('header-cart-total');
             if(hCount) hCount.innerText = `${totalItems} Item${totalItems !== 1 ? 's' : ''}`;
             if(hTotal) hTotal.innerText = `$${totalPrice.toFixed(2)}`;
 
-            // Sticky Bottom Tracker
             const tracker = $('bottom-tracker');
             const tCount = $('tracker-count');
             const tTotal = $('tracker-total');
@@ -764,10 +768,10 @@
                 if(tTotal) tTotal.innerText = `$${totalPrice.toFixed(2)}`;
             } else {
                 if(tracker) tracker.classList.add('hide');
-                closeModal('cart-modal'); // Close if open and empty
+                closeModal('cart-modal'); 
             }
 
-            renderStorefront(); // To update the ADD buttons
+            renderStorefront(); 
             renderCartModalList();
         }
 
@@ -809,11 +813,263 @@
             totalEl.innerText = `$${totalPrice.toFixed(2)}`;
         }
 
+
+        // ==========================================
+        // CUSTOMER AUTH & ACCOUNT LOGIC
+        // ==========================================
+        let proceedToCheckoutAfterAuth = false;
+
+        function updateHeaderAccountUI() {
+            const accText = $('header-account-text');
+            if(state.currentCustomer) {
+                accText.innerText = "Hi, " + state.currentCustomer.Name.split(" ")[0];
+            } else {
+                accText.innerText = "Login";
+            }
+        }
+
+        function handleAccountClick() {
+            if(state.currentCustomer) {
+                openCustomerDashboard();
+            } else {
+                proceedToCheckoutAfterAuth = false;
+                openModal('customer-auth-modal');
+                toggleAuthMode('login');
+            }
+        }
+
+        function toggleAuthMode(mode) {
+            if(mode === 'login') {
+                $('auth-login-step').classList.remove('hide');
+                $('auth-register-step').classList.add('hide');
+                $('login-phone').value = '';
+                $('login-pass').value = '';
+            } else {
+                $('auth-login-step').classList.add('hide');
+                $('auth-register-step').classList.remove('hide');
+                $('reg-name').value = '';
+                $('reg-phone').value = '';
+                $('reg-pass').value = '';
+                $('reg-address').value = '';
+            }
+        }
+
+        async function processCustomerLogin() {
+            const phoneRaw = $('login-phone').value.trim();
+            const phone = phoneRaw.replace(/\D/g, ''); // Extract digits only
+            const pass = $('login-pass').value;
+            
+            if(phone.length !== 10) {
+                showCustomAlert("Invalid Number", "Please enter a valid 10-digit mobile number.");
+                return;
+            }
+            if(!pass) {
+                showCustomAlert("Required", "Please enter your password.");
+                return;
+            }
+
+            const btn = $('auth-login-btn');
+            btn.innerText = "Checking...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetchAPI('checkCustomer', 'POST', { phone: phone, password: pass });
+                
+                if(res.success && res.data.exists && res.data.auth) {
+                    // Log them in securely
+                    state.currentCustomer = res.data.user;
+                    localStorage.setItem('fc_customer', JSON.stringify(res.data.user));
+                    updateHeaderAccountUI();
+                    closeModal('customer-auth-modal');
+                    
+                    if(proceedToCheckoutAfterAuth) {
+                        startCheckout();
+                    } else {
+                        showCustomAlert("Welcome back!", `Logged in as ${res.data.user.Name}`);
+                    }
+                } else if(res.success && res.data.exists && !res.data.auth) {
+                    showCustomAlert("Error", "Incorrect password. Please try again.");
+                } else if(res.success && !res.data.exists) {
+                    showCustomAlert("Notice", "Account not found. Please create a new account.");
+                    toggleAuthMode('register');
+                    $('reg-phone').value = phone;
+                } else {
+                    showCustomAlert("Error", "Could not connect to database.");
+                }
+            } catch(e) {
+                showCustomAlert("Error", "Connection failed.");
+            } finally {
+                btn.innerText = "Login";
+                btn.disabled = false;
+            }
+        }
+
+        async function registerNewCustomer() {
+            const name = $('reg-name').value.trim();
+            const phoneRaw = $('reg-phone').value.trim();
+            const phone = phoneRaw.replace(/\D/g, ''); // Extract digits only
+            const pass = $('reg-pass').value;
+            const address = $('reg-address').value.trim();
+
+            if(phone.length !== 10) {
+                showCustomAlert("Invalid Number", "Please enter a valid 10-digit mobile number.");
+                return;
+            }
+            if(!name || !pass || !address) {
+                showCustomAlert("Required", "Please fill in all details.");
+                return;
+            }
+
+            const btn = $('auth-reg-btn');
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetchAPI('registerCustomer', 'POST', { name, phone, password: pass, address });
+                if(res.success) {
+                    state.currentCustomer = res.data;
+                    localStorage.setItem('fc_customer', JSON.stringify(res.data));
+                    updateHeaderAccountUI();
+                    closeModal('customer-auth-modal');
+                    
+                    if(proceedToCheckoutAfterAuth) {
+                        startCheckout();
+                    } else {
+                        showCustomAlert("Success", "Account created successfully!");
+                    }
+                }
+            } catch(e) {
+                showCustomAlert("Error", "Registration failed.");
+            } finally {
+                btn.innerText = "Sign Up";
+                btn.disabled = false;
+            }
+        }
+
+        function logoutCustomer() {
+            state.currentCustomer = null;
+            localStorage.removeItem('fc_customer');
+            updateHeaderAccountUI();
+            closeModal('customer-account-modal');
+            showCustomAlert("Logged Out", "You have been securely signed out.");
+        }
+
+        async function openCustomerDashboard() {
+            if(!state.currentCustomer) return;
+            
+            // Map the mobile number properly
+            const userPhone = state.currentCustomer['Mobile Number'] || state.currentCustomer.Phone;
+
+            // Set profile text
+            $('profile-name').innerText = state.currentCustomer.Name;
+            $('profile-phone').innerText = userPhone;
+            $('profile-address').innerText = state.currentCustomer.Address;
+
+            const list = $('customer-orders-list');
+            list.innerHTML = '<div class="text-center py-4"><i class="fa-solid fa-spinner fa-spin text-gray-400"></i> Fetching orders...</div>';
+            openModal('customer-account-modal');
+
+            try {
+                const res = await fetchAPI('getCustomerOrders', 'POST', { phone: userPhone });
+                if(res.success) {
+                    renderCustomerOrders(res.data);
+                } else {
+                    list.innerHTML = '<div class="text-red-500 text-center">Failed to load orders.</div>';
+                }
+            } catch(e) {
+                list.innerHTML = '<div class="text-red-500 text-center">Connection Error.</div>';
+            }
+        }
+
+        function renderCustomerOrders(orders) {
+            const list = $('customer-orders-list');
+            list.innerHTML = '';
+
+            if(!orders || orders.length === 0) {
+                list.innerHTML = '<div class="text-center py-8 text-gray-500 bg-gray-50 rounded-xl">No orders found yet.</div>';
+                return;
+            }
+
+            orders.forEach(o => {
+                let statusColor = "bg-gray-100 text-gray-700";
+                if(o.Status === "Picked Up") statusColor = "bg-blue-100 text-blue-700";
+                if(o.Status === "Delivered") statusColor = "bg-green-100 text-green-700";
+                if(o.Status === "Cancelled") statusColor = "bg-red-100 text-red-700";
+                
+                let itemsHtml = '';
+                if(o.Items && o.Items.length > 0) {
+                    itemsHtml = o.Items.map(i => `<span class="text-xs bg-gray-100 px-2 py-1 rounded border border-gray-200 text-gray-600">${i.Qty}x ${i.Name}</span>`).join(' ');
+                }
+
+                let cancelBtnHtml = '';
+                if(o.Status === "Pending") {
+                    cancelBtnHtml = `<button onclick="cancelOrder('${o.OrderID}', 'customer')" class="mt-3 text-red-500 hover:text-red-700 text-sm font-bold border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-lg transition"><i class="fa-solid fa-xmark mr-1"></i> Cancel Order</button>`;
+                }
+
+                list.innerHTML += `
+                    <div class="border border-gray-200 rounded-xl p-4 bg-white hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <span class="font-mono text-xs font-bold text-gray-400">#${o.OrderID}</span>
+                                <h4 class="font-bold text-lg text-gray-800 mt-0.5">$${parseFloat(o.Total).toFixed(2)}</h4>
+                                <p class="text-xs text-gray-500 mt-1"><i class="fa-regular fa-clock"></i> ${new Date(o.OrderedAt || Date.now()).toLocaleDateString()}</p>
+                            </div>
+                            <span class="px-2 py-1 rounded text-xs font-bold ${statusColor}">${o.Status}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1 mt-3">
+                            ${itemsHtml}
+                        </div>
+                        ${cancelBtnHtml}
+                    </div>
+                `;
+            });
+        }
+
+        function cancelOrder(orderId, source) {
+            showCustomConfirm("Cancel Order", `Are you sure you want to cancel Order #${orderId}?`, async () => {
+                const res = await fetchAPI('updateOrderStatus', 'POST', { orderId: orderId, status: 'Cancelled' });
+                if(res.success) {
+                    showCustomAlert("Order Cancelled", "The order has been successfully cancelled.");
+                    if(source === 'customer') openCustomerDashboard();
+                    if(source === 'admin') refreshAdminData();
+                } else {
+                    showCustomAlert("Error", "Could not cancel the order.");
+                }
+            });
+        }
+
+        async function adminAssignRider(orderId, riderName) {
+            const res = await fetchAPI('assignDeliveryBoy', 'POST', { orderId: orderId, deliveryBoyName: riderName });
+            if(res.success) {
+                showCustomAlert("Rider Assigned", `Order #${orderId} assigned to ${riderName || 'Unassigned'}.`);
+                refreshAdminData();
+            } else {
+                showCustomAlert("Error", "Could not assign rider.");
+                refreshAdminData(); // Refresh UI to reset select box
+            }
+        }
+
         // ==========================================
         // CHECKOUT LOGIC
         // ==========================================
         function startCheckout() {
             closeModal('cart-modal');
+
+            // Force Login Verification
+            if(!state.currentCustomer) {
+                proceedToCheckoutAfterAuth = true; 
+                openModal('customer-auth-modal');
+                toggleAuthMode('login');
+                return;
+            }
+
+            // Autofill the checkout form using the saved session
+            const userPhone = state.currentCustomer['Mobile Number'] || state.currentCustomer.Phone;
+            $('checkout-display-name').innerText = state.currentCustomer.Name;
+            $('c-name').value = state.currentCustomer.Name;
+            $('c-phone').value = userPhone;
+            $('c-address').value = state.currentCustomer.Address;
+
             openModal('checkout-modal');
         }
 
@@ -838,7 +1094,7 @@
 
             const orderData = {
                 customerName: $('c-name').value,
-                phone: $('c-phone').value,
+                phone: $('c-phone').value, // Cannot be edited, it's their ID
                 address: $('c-address').value,
                 paymentMethod: $('c-payment').value,
                 deliveryWindow: "ASAP (10 Mins)",
@@ -866,90 +1122,11 @@
         }
 
         // ==========================================
-        // CUSTOMER ACCOUNT LOGIC
-        // ==========================================
-        function openCustomerAuth() {
-            openModal('customer-auth-modal');
-            $('customer-phone-input').value = '';
-        }
-
-        async function loadCustomerOrders() {
-            const phone = $('customer-phone-input').value.trim();
-            if(!phone) {
-                showCustomAlert("Required", "Please enter your phone number.");
-                return;
-            }
-
-            const btn = $('load-orders-btn');
-            const origText = btn.innerText;
-            btn.innerText = "Loading...";
-            btn.disabled = true;
-
-            try {
-                const res = await fetchAPI('getCustomerOrders', 'POST', { phone: phone });
-                if(res.success) {
-                    closeModal('customer-auth-modal');
-                    $('account-phone-display').innerText = phone;
-                    renderCustomerOrders(res.data);
-                    openModal('customer-account-modal');
-                } else {
-                    showCustomAlert("Error", "Could not fetch orders.");
-                }
-            } catch(e) {
-                showCustomAlert("Error", "Connection failed.");
-            } finally {
-                btn.innerText = origText;
-                btn.disabled = false;
-            }
-        }
-
-        function renderCustomerOrders(orders) {
-            const list = $('customer-orders-list');
-            if(!list) return;
-            list.innerHTML = '';
-
-            if(!orders || orders.length === 0) {
-                list.innerHTML = '<div class="text-center py-8 text-gray-500 bg-gray-50 rounded-xl">No orders found for this phone number.</div>';
-                return;
-            }
-
-            orders.forEach(o => {
-                let statusColor = "bg-gray-100 text-gray-700";
-                if(o.Status === "Picked Up") statusColor = "bg-blue-100 text-blue-700";
-                if(o.Status === "Delivered") statusColor = "bg-green-100 text-green-700";
-                
-                let itemsHtml = '';
-                if(o.Items && o.Items.length > 0) {
-                    itemsHtml = o.Items.map(i => `<span class="text-xs bg-gray-100 px-2 py-1 rounded border border-gray-200 text-gray-600">${i.Qty}x ${i.Name}</span>`).join(' ');
-                }
-
-                list.innerHTML += `
-                    <div class="border border-gray-200 rounded-xl p-4 bg-white hover:shadow-md transition">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <span class="font-mono text-xs font-bold text-gray-400">#${o.OrderID}</span>
-                                <h4 class="font-bold text-lg text-gray-800 mt-0.5">$${parseFloat(o.Total).toFixed(2)}</h4>
-                                <p class="text-xs text-gray-500 mt-1"><i class="fa-regular fa-clock"></i> ${new Date(o.OrderedAt || Date.now()).toLocaleDateString()}</p>
-                            </div>
-                            <span class="px-2 py-1 rounded text-xs font-bold ${statusColor}">${o.Status}</span>
-                        </div>
-                        <div class="flex flex-wrap gap-1 mt-3">
-                            ${itemsHtml}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        // ==========================================
         // PORTAL LOGIC (RIDER & ADMIN)
         // ==========================================
         async function loginRider() {
             const pass = $('rider-passcode').value;
             if(!pass) return;
-            
-            // In a real app, validate via backend API first.
-            // For demo, fetching all riders and checking locally.
             try {
                 const res = await fetchAPI('getDeliveryBoys', 'GET');
                 if(res.success) {
@@ -963,16 +1140,13 @@
                         showCustomAlert("Access Denied", "Invalid or inactive passcode.");
                     }
                 }
-            } catch(e) {
-                showCustomAlert("Error", "Could not connect to authentication server.");
-            }
+            } catch(e) { showCustomAlert("Error", "Connection failed."); }
         }
 
         async function loginAdmin() {
             const user = $('admin-user').value;
             const pass = $('admin-pass').value;
             if(!user || !pass) return;
-
             try {
                 const res = await fetchAPI('getAdmins', 'GET');
                 if(res.success) {
@@ -986,9 +1160,7 @@
                         showCustomAlert("Access Denied", "Invalid credentials.");
                     }
                 }
-            } catch(e) {
-                showCustomAlert("Error", "Could not connect to authentication server.");
-            }
+            } catch(e) { showCustomAlert("Error", "Connection failed."); }
         }
 
         function logout(dashboardId) {
@@ -1008,16 +1180,10 @@
         async function refreshRiderOrders() {
             const list = $('rider-orders-list');
             if(list) list.innerHTML = '<div class="text-center py-4 text-gray-500"><i class="fa-solid fa-spinner fa-spin"></i> Syncing runs...</div>';
-            
             try {
                 const res = await fetchAPI('getOrders', 'GET');
-                if(res.success) {
-                    state.orders = res.data;
-                    renderRiderOrders();
-                }
-            } catch(e) {
-                if(list) list.innerHTML = '<div class="text-red-500">Sync failed.</div>';
-            }
+                if(res.success) { state.orders = res.data; renderRiderOrders(); }
+            } catch(e) { if(list) list.innerHTML = '<div class="text-red-500">Sync failed.</div>'; }
         }
 
         function renderRiderOrders() {
@@ -1026,8 +1192,6 @@
             list.innerHTML = '';
             
             const myName = state.currentUser.data.Name;
-            
-            // Show Pending Orders (Unassigned) OR Orders assigned to THIS rider that are not Delivered
             const relevant = state.orders.filter(o => 
                 (o.Status === 'Pending' && !o.AssignedDeliveryBoy) || 
                 (o.AssignedDeliveryBoy === myName && o.Status !== 'Delivered')
@@ -1081,7 +1245,6 @@
         }
 
         function switchAdminTab(tab) {
-            // Update UI buttons
             const btns = document.querySelectorAll('.admin-tab-btn');
             btns.forEach(b => {
                 b.className = "admin-tab-btn bg-white text-gray-500 px-4 py-2 rounded-lg font-bold shadow-sm border-b-4 border-transparent hover:text-gray-800 transition";
@@ -1090,17 +1253,14 @@
                 }
             });
 
-            // Toggle content
             const contents = document.querySelectorAll('.admin-tab-content');
             contents.forEach(c => c.classList.add('hide'));
-            
             const target = $(`admin-tab-${tab}`);
             if(target) target.classList.remove('hide');
         }
 
         async function refreshAdminData() {
             try {
-                // Fetch all parallel
                 const [pRes, oRes, dRes] = await Promise.all([
                     fetchAPI('getProducts', 'GET'),
                     fetchAPI('getOrders', 'GET'),
@@ -1114,9 +1274,7 @@
                 renderAdminOverview();
                 renderAdminProducts();
                 renderAdminOrders();
-            } catch(e) {
-                console.error("Admin refresh failed", e);
-            }
+            } catch(e) { console.error("Admin refresh failed", e); }
         }
 
         function renderAdminOverview() {
@@ -1158,10 +1316,33 @@
             if(!tbody) return;
             tbody.innerHTML = '';
 
+            // Get active delivery boys for the dropdown
+            const activeRiders = state.deliveryBoys.filter(d => d.Active);
+
             state.orders.forEach(o => {
                 let statusColor = "bg-gray-100 text-gray-700";
                 if(o.Status === "Picked Up") statusColor = "bg-blue-100 text-blue-700";
                 if(o.Status === "Delivered") statusColor = "bg-green-100 text-green-700";
+                if(o.Status === "Cancelled") statusColor = "bg-red-100 text-red-700";
+
+                // Build Rider Dropdown
+                let riderOptions = `<option value="">-- Unassigned --</option>`;
+                activeRiders.forEach(rider => {
+                    const isSelected = o.AssignedDeliveryBoy === rider.Name ? 'selected' : '';
+                    riderOptions += `<option value="${rider.Name}" ${isSelected}>${rider.Name}</option>`;
+                });
+                
+                let assignSelect = o.Status === "Cancelled" || o.Status === "Delivered" 
+                    ? `<span class="text-xs text-gray-500">${o.AssignedDeliveryBoy || 'N/A'}</span>`
+                    : `<select onchange="adminAssignRider('${o.OrderID}', this.value)" class="bg-gray-50 border border-gray-200 text-xs rounded p-1.5 outline-none focus:border-fcGreen w-full max-w-[120px]">
+                        ${riderOptions}
+                       </select>`;
+
+                // Build Cancel Button
+                let actionBtn = '';
+                if(o.Status !== "Cancelled" && o.Status !== "Delivered") {
+                    actionBtn = `<button onclick="cancelOrder('${o.OrderID}', 'admin')" class="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded text-xs font-bold transition">Cancel</button>`;
+                }
 
                 tbody.innerHTML += `
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
@@ -1169,7 +1350,8 @@
                         <td class="p-3">${o.CustomerName}</td>
                         <td class="p-3 font-bold">$${parseFloat(o.Total).toFixed(2)}</td>
                         <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${statusColor}">${o.Status}</span></td>
-                        <td class="p-3 text-xs text-gray-500">${o.AssignedDeliveryBoy || 'Unassigned'}</td>
+                        <td class="p-3">${assignSelect}</td>
+                        <td class="p-3">${actionBtn}</td>
                     </tr>
                 `;
             });
